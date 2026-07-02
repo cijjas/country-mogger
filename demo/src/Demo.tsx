@@ -12,7 +12,7 @@ import topoData from "@/public/countries-50m.json";
 const { fontFamily: serif } = loadFont();
 
 export const DEMO_FPS = 30;
-export const DEMO_DURATION = 240;
+export const DEMO_DURATION = 300;
 
 // palette mirrors app/globals.css
 const BG = "#07090c";
@@ -40,9 +40,10 @@ function useScene() {
   return useMemo(() => {
     const geo = buildGeoData(topoData as unknown as WorldTopology);
     const usa = geo.nums.indexOf("840");
-    // pin dropped on China: USA's GDP swallows it whole, then sweeps across Asia
-    const seed = geo.nums.indexOf("156");
-    const result = computeFill(geo, "gdp", usa, seed);
+    // pin dropped on Germany: USA's GDP sweeps all of Europe and keeps going.
+    // The app's per-interaction item cap is lifted so the fill completes on film.
+    const seed = geo.nums.indexOf("276");
+    const result = computeFill(geo, "gdp", usa, seed, 200);
 
     const projection = d3.geoMercator();
     const involved = { type: "FeatureCollection", features: [geo.features[usa], ...result.items.map((d) => geo.features[d.idx])] };
@@ -72,8 +73,12 @@ export const Demo: React.FC = () => {
 
   const n = result.items.length;
   const budget = result.budget ?? 0;
-  const step = Math.max(2.4, Math.min(5, 120 / n));
-  const cascadeEnd = CASCADE_AT + n * step;
+  // first few countries land slowly so the eye can follow, then the cascade
+  // accelerates so any cast size finishes by ~frame 206
+  const RAMP = 8, SLOW = 4.5;
+  const fast = Math.min(5, Math.max(1.2, (206 - CASCADE_AT - RAMP * SLOW) / Math.max(1, n - RAMP)));
+  const appearAt = (i: number) => CASCADE_AT + (i < RAMP ? i * SLOW : RAMP * SLOW + (i - RAMP) * fast);
+  const cascadeEnd = appearAt(n - 1) + 6;
   const outlineAt = cascadeEnd + 6;
   const headlineAt = outlineAt + 10;
   const outroAt = DEMO_DURATION - 14;
@@ -85,13 +90,13 @@ export const Demo: React.FC = () => {
     * interpolate(frame, INTRO_FADE_OUT, [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
 
   const itemOpacity = (i: number) => {
-    const at = CASCADE_AT + i * step;
+    const at = appearAt(i);
     const max = result.items[i].kind === "partial" ? 0.55 : 0.96;
     return interpolate(frame, [at, at + 6], [0, max], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   };
-  const landedCount = result.items.filter((_, i) => frame >= CASCADE_AT + i * step + 3).length;
+  const landedCount = result.items.filter((_, i) => frame >= appearAt(i) + 3).length;
   const cumulative = result.items.reduce((acc, d, i) => {
-    const at = CASCADE_AT + i * step;
+    const at = appearAt(i);
     const p = interpolate(frame, [at, at + 6], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
     return acc + d.area * d.frac * p;
   }, 0);
@@ -159,14 +164,19 @@ export const Demo: React.FC = () => {
 
       {/* closing headline */}
       <div style={{
-        position: "absolute", left: 0, right: 0, top: 74, display: "flex", flexDirection: "column",
+        position: "absolute", left: 0, right: 0, top: 64, display: "flex", flexDirection: "column",
         alignItems: "center", opacity: headline * outro,
       }}>
-        <div style={{ fontFamily: serif, fontSize: 54, color: INK }}>
-          United States <span style={{ color: MUTED }}>=</span> <span style={{ color: GOLD }}>{n} countries</span>
-        </div>
-        <div style={{ marginTop: 8, fontSize: 20, color: MUTED }}>
-          by GDP{partialLabel ? `, including ${partialLabel}` : ""} · countrymogger
+        <div style={{
+          display: "flex", flexDirection: "column", alignItems: "center",
+          background: "rgba(7,9,12,0.82)", border: "1px solid #262c36", padding: "18px 40px 16px",
+        }}>
+          <div style={{ fontFamily: serif, fontSize: 54, color: INK, lineHeight: 1.1 }}>
+            United States <span style={{ color: MUTED }}>=</span> <span style={{ color: GOLD }}>{n} countries</span>
+          </div>
+          <div style={{ marginTop: 8, fontSize: 20, color: MUTED }}>
+            by GDP{partialLabel ? `, including ${partialLabel}` : ""} · countrymogger
+          </div>
         </div>
       </div>
 

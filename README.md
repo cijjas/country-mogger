@@ -3,85 +3,44 @@
 [![CI](https://github.com/cijjas/country-mogger/actions/workflows/ci.yml/badge.svg)](https://github.com/cijjas/country-mogger/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-f2c14e.svg)](LICENSE)
 
-**How many countries fit inside the one you picked?**
-
 <p align="center">
-  <img src=".github/demo.gif" alt="USA mogging 19 countries by GDP" width="720" />
+  <img src=".github/demo.gif" alt="The GDP of the United States swallowing 69 countries, animated" width="760" />
 </p>
 
-Pick a country, then click anywhere on the world map. Countries around that point light up, one by one, until together they add up to your country: by area, GDP, population, military spending, homicides, tourism, or any of 24 metrics. The last country is carved with an organic cut so the total lands exactly on 100%.
+Every week someone posts a map: "France's GDP fits inside Texas", "Africa is bigger than you think". No source, no numbers, wrong half the time. I like those comparisons too much to keep scrolling past bad ones, so I built the real thing.
 
-Built with Next.js, D3 and shadcn/ui. No backend, no accounts, no tracking: one static page and a pile of computational geometry.
+**Pick a country. Drop a pin anywhere on the map. Countries light up one by one until they add up to yours. Exactly.**
 
-## Features
+That is the whole app. It works for 24 metrics: area, GDP, population, military spending, homicides, tourists, CO₂, patents, science papers, electricity and more. The final country gets carved down to the exact fraction needed, so the total lands on 100%, not "roughly". Every number is World Bank data, and the exact indicator code is shown right in the UI.
 
-- **24 additive metrics** across geography, economy, people, military, environment, technology and travel, each with its source attached in the UI
-- **Nearest-first flood fill** that expands through shared land borders and jumps the narrowest stretch of water when a coastline runs out
-- **Organic partial cut**: the final country is carved with an area-matched, seam-aware polygon cut instead of an arbitrary straight line
-- **Flag donut** showing every contributor's share, linked to the map on hover
-- **Surprise me**: a random heavyweight matchup on a random metric
-- **Shareable URLs** (`?c=076&m=gdp` selects Brazil by GDP)
-- Keyboard: `/` to search countries, `Esc` to reset
+Things it will tell you:
 
-## How it works
+- The GDP of the United States equals **69 countries**: all of Europe, Russia, the Middle East, North Africa, and 9% of Sweden. That is the film above, and it is not a mockup, it is the app's real engine rendering its real output.
+- Japan records about **285 homicides a year**. Brazil records about **40,700**.
+- China emits almost **3x the CO₂** of the United States.
 
-1. The world is loaded once from a self-hosted [world-atlas](https://github.com/topojson/world-atlas) topology (Natural Earth 1:50m). Border adjacency, true areas, centroids, bounds and boundary samples are precomputed (`lib/geo/load-world.ts`).
-2. When you drop the pin, a greedy flood fill starts at the country under it and consumes neighbours nearest-first until the selected country's metric value is reached (`lib/geo/fill-engine.ts`). Countries with no data are traversed but never counted. When land runs out the fill crosses to the nearest unreached country, measured edge to edge.
-3. The country that would overshoot the budget is included partially: its main landmass is projected to screen space and an area-matched organic cut is binary-searched out of it with polygon boolean operations (`lib/geo/polygon.ts`).
-4. Results are memoised per (metric, selection, seed country), so dragging the pin inside one country costs nothing.
-
-The D3 renderer (`components/map/renderer.ts`) owns the SVG imperatively; React (`components/map-explorer.tsx`) owns selection and metric state and talks to the renderer through a narrow interface.
-
-## Getting started
-
-Requires Node 20.9+.
+## Run it
 
 ```bash
-npm install
-npm run dev
+npm install && npm run dev
 ```
 
-Open http://localhost:3000.
+Node 20.9+. No env vars, no accounts, no database. `npm test` runs the engine tests; `npm run build-data` refetches the World Bank snapshot.
 
-| Script | What it does |
-| --- | --- |
-| `npm run dev` | development server |
-| `npm run build` | production build |
-| `npm run lint` | ESLint |
-| `npm run typecheck` | TypeScript, no emit |
-| `npm test` | Vitest unit tests (fill engine, polygon math) |
-| `npm run build-data` | regenerate `lib/metric-data.ts` from the World Bank API |
+## How the fill actually works
 
-## Deploying
+A greedy flood fill starts at the country under your pin and eats neighbours nearest-first through shared land borders. When a coastline runs out, it jumps the narrowest stretch of water, measured edge to edge, and keeps going. The country that would overshoot the budget is cut with an area-matched organic polygon cut (binary-searched boolean geometry, seam-aware for countries that cross the 180th meridian), so the outline you see is honest. Countries with no data for a metric are walked through but never counted. Results are memoised per seed country, which is why dragging the pin costs nothing. All of it is pure TypeScript in `lib/geo/`, unit-tested, no DOM.
 
-The app is a fully static Next.js site with zero configuration and no environment variables.
+## The demo film
 
-**Vercel:** import the repository at [vercel.com/new](https://vercel.com/new) and deploy; the defaults are correct. Or from the CLI:
+The GIF is rendered with [Remotion](https://remotion.dev) from `demo/`, driving the app's actual fill engine and data. To re-render it: `cd demo && npm install && npm run render:gif`.
 
-```bash
-npx vercel
-```
+## Data
 
-Any other Next.js-capable host works the same way.
+[World Bank Open Data](https://data.worldbank.org/) (CC BY 4.0), each country's latest value from 2015-2023, with per-capita rates converted to totals via population (`scripts/build-data.mjs`). Geometry from [Natural Earth](https://www.naturalearthdata.com/) via [world-atlas](https://github.com/topojson/world-atlas). Flags from [flagcdn](https://flagcdn.com/).
 
-## Demo video
+It is a toy for building intuition, not a citation source: snapshot years differ by country, and the partial cut matches its fraction by visual area.
 
-The GIF above is rendered with [Remotion](https://remotion.dev) from `demo/`, driving the app's real fill engine and real World Bank data (no mockups: that is the actual USA-by-GDP result, pin dropped on China). To re-render:
+---
 
-```bash
-cd demo
-npm install
-npm run render:gif   # or render:mp4, or `npm run studio` to edit
-```
-
-## Data, accuracy and attribution
-
-- **Metrics:** [World Bank Open Data](https://data.worldbank.org/) (CC BY 4.0), one snapshot per country using its latest available value from 2015-2023. The exact indicator code for every metric is shown in the metric picker and in `lib/metrics.ts`. Per-capita rates (births, deaths, homicides, internet use, health spend, electricity) are converted to totals via population.
-- **Geometry:** [Natural Earth](https://www.naturalearthdata.com/) (public domain) via [world-atlas](https://github.com/topojson/world-atlas).
-- **Flags:** [flagcdn.com](https://flagcdn.com/).
-
-Honest caveats: values are not from a single uniform year, partial-country cuts match the metric fraction by *visual area* (an approximation), and the across-water jump is a heuristic. This is a toy for building intuition, not a citation source.
-
-## License
-
-[MIT](LICENSE)
+MIT. Built with Next.js, D3, shadcn/ui and an unreasonable amount of computational geometry.

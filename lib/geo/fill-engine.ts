@@ -83,14 +83,14 @@ function nearestAcrossWater(data: GeoData, visited: Set<number>): number | null 
  * The selected country itself is traversed but never counted, as are countries with no
  * data for the metric: geography stays connected, totals stay honest.
  */
-function floodFill(data: GeoData, metric: MetricKey, seed: number, budget: number, exclude: number) {
+function floodFill(data: GeoData, metric: MetricKey, seed: number, budget: number, exclude: number, maxItems: number) {
   const dropPt = data.centroidOf[seed];
   const items: FillItem[] = [];
   let total = 0;
   const frontier = new Set<number>([seed]);
   const seededViaWater = new Set<number>();
   const visited = new Set<number>();
-  while (total < budget - 1e-6 && items.length < MAX_FILL) {
+  while (total < budget - 1e-6 && items.length < maxItems) {
     let next: number | null = null;
     if (frontier.size) {
       next = [...frontier].reduce((best: number | null, idx) =>
@@ -122,9 +122,11 @@ function floodFill(data: GeoData, metric: MetricKey, seed: number, budget: numbe
 }
 
 /** Full fill computation for a selection and a seed country (null seed = pin over ocean). */
-export function computeFill(data: GeoData, metric: MetricKey, selIdx: number, seedIdx: number | null): FillResult {
+export function computeFill(
+  data: GeoData, metric: MetricKey, selIdx: number, seedIdx: number | null, maxItems: number = MAX_FILL,
+): FillResult {
   const budget = metricValue(data, metric, selIdx);
   if (budget == null || budget <= 0) return { items: [], total: 0, budget, noData: true, selIdx };
   if (seedIdx == null) return { items: [], total: 0, budget, seededOnOcean: true, selIdx };
-  return { ...floodFill(data, metric, seedIdx, budget, selIdx), selIdx };
+  return { ...floodFill(data, metric, seedIdx, budget, selIdx, maxItems), selIdx };
 }

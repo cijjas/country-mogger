@@ -22,6 +22,7 @@
     "@types/d3": "^7.4.3",
     "@types/react": "^19",
     "@types/topojson-client": "^3.1.5",
+    "gifsicle": "^7.0.1",
     "typescript": "^5"
   }
 }
