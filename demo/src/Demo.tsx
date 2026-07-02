@@ -12,7 +12,7 @@ import topoData from "@/public/countries-50m.json";
 const { fontFamily: serif } = loadFont();
 
 export const DEMO_FPS = 30;
-export const DEMO_DURATION = 320;
+export const DEMO_DURATION = 410;
 
 // palette mirrors app/globals.css
 const BG = "#07090c";
@@ -75,7 +75,7 @@ export const Demo: React.FC = () => {
   const budget = result.budget ?? 0;
   // first few countries land slowly so the eye can follow, then the cascade
   // accelerates so any cast size finishes by ~frame 188, leaving the closing
-  // headline about three full seconds on screen before the loop fades
+  // headline six full seconds on screen before the loop fades
   const RAMP = 8, SLOW = 4.5;
   const fast = Math.min(5, Math.max(1.2, (188 - CASCADE_AT - RAMP * SLOW) / Math.max(1, n - RAMP)));
   const appearAt = (i: number) => CASCADE_AT + (i < RAMP ? i * SLOW : RAMP * SLOW + (i - RAMP) * fast);
