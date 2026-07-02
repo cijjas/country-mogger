@@ -7,7 +7,7 @@
   <img src=".github/demo.gif" alt="The GDP of the United States swallowing 69 countries, animated" width="760" />
 </p>
 
-Every week someone posts a map: "France's GDP fits inside Texas", "Africa is bigger than you think". No source, no numbers, wrong half the time. I like those comparisons too much to keep scrolling past bad ones, so I built the real thing.
+Every week someone posts a map: "France's GDP fits inside Texas", "Africa is bigger than you think". Fun for exactly one screenshot. I love the genre too much to leave it there, so I built the toy those posts wish they were.
 
 **Pick a country. Drop a pin anywhere on the map. Countries light up one by one until they add up to yours. Exactly.**
 
