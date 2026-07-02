@@ -1,0 +1,27 @@
+{
+  "name": "country-mogger-demo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Remotion source for the README demo video. Renders a real USA-by-GDP fill using the app's own engine.",
+  "scripts": {
+    "studio": "remotion studio",
+    "still": "remotion still Demo",
+    "render:mp4": "remotion render Demo out/demo.mp4 --codec h264",
+    "render:gif": "remotion render Demo out/demo.gif --codec gif --every-nth-frame 2 --scale 0.625"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.0",
+    "@remotion/google-fonts": "^4.0.0",
+    "d3": "^7.9.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "remotion": "^4.0.0",
+    "topojson-client": "^3.1.0"
+  },
+  "devDependencies": {
+    "@types/d3": "^7.4.3",
+    "@types/react": "^19",
+    "@types/topojson-client": "^3.1.5",
+    "typescript": "^5"
+  }
+}

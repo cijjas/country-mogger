@@ -9,20 +9,14 @@ const STERADIAN_TO_KM2 = EARTH_RADIUS_KM * EARTH_RADIUS_KM;
 const LOCAL_URL = "/countries-50m.json";
 const FALLBACK_URL = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json";
 
-/**
- * Fetch the world topology (self-hosted copy first, CDN as fallback) and precompute
- * everything the fill engine and renderer need. Throws when both sources fail.
- */
-export async function loadWorld(): Promise<{ data: GeoData; countries: CountryEntry[] }> {
-  let topo: { objects: { countries: { geometries: unknown[] } } };
-  try {
-    const res = await fetch(LOCAL_URL);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    topo = await res.json();
-  } catch {
-    topo = await fetch(FALLBACK_URL).then((r) => r.json());
-  }
+/** World topology shape we consume from world-atlas. */
+export interface WorldTopology { objects: { countries: { geometries: unknown[] } } }
 
+/**
+ * Precompute everything the fill engine and renderer need from a world-atlas
+ * topology. Pure: also used by the Remotion demo under demo/.
+ */
+export function buildGeoData(topo: WorldTopology): GeoData {
   const geo = topoFeature(topo as never, (topo as never as { objects: { countries: never } }).objects.countries) as never as { features: CountryFeature[] };
   const geoms = topo.objects.countries.geometries;
   const neighbors = topoNeighbors(geoms as never);
@@ -47,9 +41,29 @@ export async function loadWorld(): Promise<{ data: GeoData; countries: CountryEn
     nums[i] = f.__num;
   });
 
-  const data: GeoData = { features, geoms, neighbors, areaOf, centroidOf, samplesOf, boundsOf, names, nums, topo };
-  const countries: CountryEntry[] = features
+  return { features, geoms, neighbors, areaOf, centroidOf, samplesOf, boundsOf, names, nums, topo };
+}
+
+/** Countries sorted by name, for pickers. */
+export function listCountries(data: GeoData): CountryEntry[] {
+  return data.features
     .map((f) => ({ i: f.__i, name: f.properties.name, num: f.__num }))
     .sort((a, b) => a.name.localeCompare(b.name));
-  return { data, countries };
+}
+
+/**
+ * Fetch the world topology (self-hosted copy first, CDN as fallback) and build
+ * {@link GeoData}. Throws when both sources fail.
+ */
+export async function loadWorld(): Promise<{ data: GeoData; countries: CountryEntry[] }> {
+  let topo: WorldTopology;
+  try {
+    const res = await fetch(LOCAL_URL);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    topo = await res.json();
+  } catch {
+    topo = await fetch(FALLBACK_URL).then((r) => r.json());
+  }
+  const data = buildGeoData(topo);
+  return { data, countries: listCountries(data) };
 }

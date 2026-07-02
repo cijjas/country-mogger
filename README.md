@@ -1,6 +1,13 @@
 # Country Mogger
 
+[![CI](https://github.com/cijjas/country-mogger/actions/workflows/ci.yml/badge.svg)](https://github.com/cijjas/country-mogger/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-f2c14e.svg)](LICENSE)
+
 **How many countries fit inside the one you picked?**
+
+<p align="center">
+  <img src=".github/demo.gif" alt="USA mogging 19 countries by GDP" width="720" />
+</p>
 
 Pick a country, then click anywhere on the world map. Countries around that point light up, one by one, until together they add up to your country: by area, GDP, population, military spending, homicides, tourism, or any of 24 metrics. The last country is carved with an organic cut so the total lands exactly on 100%.
 
@@ -56,6 +63,16 @@ npx vercel
 ```
 
 Any other Next.js-capable host works the same way.
+
+## Demo video
+
+The GIF above is rendered with [Remotion](https://remotion.dev) from `demo/`, driving the app's real fill engine and real World Bank data (no mockups: that is the actual USA-by-GDP result, pin dropped on China). To re-render:
+
+```bash
+cd demo
+npm install
+npm run render:gif   # or render:mp4, or `npm run studio` to edit
+```
 
 ## Data, accuracy and attribution
 

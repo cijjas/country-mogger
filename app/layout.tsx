@@ -19,6 +19,11 @@ const instrumentSerif = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : "http://localhost:3000",
+  ),
   title: "Country Mogger",
   description:
     "Pick a country, drag it across the map, and watch real neighbours fill it up, by area, GDP, population, military spend and more.",
