@@ -9,7 +9,9 @@ export const contentType = "image/png";
 
 export default async function Image() {
   const serif = await readFile(join(process.cwd(), "assets/InstrumentSerif-Regular.ttf"));
-  return new ImageResponse(<OgCard />, {
+  const logo = await readFile(join(process.cwd(), "public/logo.svg"));
+  const logoSrc = `data:image/svg+xml;base64,${logo.toString("base64")}`;
+  return new ImageResponse(<OgCard logoSrc={logoSrc} />, {
     ...size,
     fonts: [{ name: "InstrumentSerif", data: serif, style: "normal", weight: 400 }],
   });

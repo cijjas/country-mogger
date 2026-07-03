@@ -39,7 +39,7 @@ function Donut() {
   );
 }
 
-export function OgCard() {
+export function OgCard({ logoSrc }: { logoSrc?: string }) {
   const chips = ["Area", "GDP", "Population", "Military $", "Homicides", "+19 more"];
   return (
     <div
@@ -50,8 +50,10 @@ export function OgCard() {
     >
       <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 10, background: GOLD, display: "flex" }} />
       <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 80px", flex: 1 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ display: "flex", width: 16, height: 16, borderRadius: 999, background: GOLD }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          {logoSrc
+            ? <img src={logoSrc} width={42} height={42} alt="" />
+            : <div style={{ display: "flex", width: 16, height: 16, borderRadius: 999, background: GOLD }} />}
           <div style={{ display: "flex", fontSize: 30, color: GOLD, letterSpacing: 6, textTransform: "uppercase" }}>
             Country Mogger
           </div>

@@ -7,6 +7,7 @@ import { Check, ChevronsUpDown, Dices, Maximize2, Minus, Plus, RotateCcw, Search
 
 import { ComparisonPanel } from "@/components/comparison-panel";
 import { Flag } from "@/components/flag";
+import { LogoMark } from "@/components/logo-mark";
 import { createMapRenderer } from "@/components/map/renderer";
 import { Button } from "@/components/ui/button";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -185,7 +186,10 @@ export default function MapExplorer() {
 
       {/* header card: title, metric picker, country search, quick start */}
       <div className="absolute left-0 top-0 z-20 w-[360px] border-b border-r bg-card/95 p-4 shadow-xl backdrop-blur-md">
-        <h1 className="font-serif text-[28px] leading-none tracking-tight">Country Mogger</h1>
+        <h1 className="flex items-center gap-2.5 font-serif text-[28px] leading-none tracking-tight">
+          <LogoMark className="size-7" />
+          Country Mogger
+        </h1>
         <p className="mb-3 mt-1.5 text-xs text-muted-foreground">
           Pick a country, then click anywhere on the map. Countries around that point light up until they add up to it.
         </p>
