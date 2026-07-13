@@ -134,7 +134,47 @@ export function createMapRenderer(container: HTMLDivElement, data: GeoData, cb: 
     if (ll) dropPin(ll);
   });
   svg.call(zoom as any).on("dblclick.zoom", null);
-  svg.call(zoom.transform as any, initialTransform);
+
+  // entry: the world assembles itself. Each country slides in from beyond its
+  // position and snaps into place in a ripple spreading from the Atlantic,
+  // while the camera glides from a pushed-in start to the resting view.
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reducedMotion) {
+    svg.call(zoom.transform as any, initialTransform);
+  } else {
+    const w = container.clientWidth, h = container.clientHeight;
+    const rand = (i: number, salt: number) => {
+      const x = Math.sin(i * 12.9898 + salt * 78.233) * 43758.5453;
+      return x - Math.floor(x);
+    };
+    const focal = projection([-25, 38]) ?? [w / 2, h / 2];
+    let maxDist = 1;
+    const pieces: { el: SVGPathElement; dx: number; dy: number; dist: number }[] = [];
+    basePaths.each(function (f: any) {
+      const c = path.centroid(f as any);
+      if (!isFinite(c[0])) return;
+      const i = f.__i as number;
+      const dist = Math.hypot(c[0] - focal[0], c[1] - focal[1]);
+      maxDist = Math.max(maxDist, dist);
+      const ang = Math.atan2(c[1] - focal[1], c[0] - focal[0]) + (rand(i, 1) - 0.5) * 1.2;
+      const push = 70 + 90 * rand(i, 2);
+      pieces.push({ el: this, dx: Math.cos(ang) * push, dy: Math.sin(ang) * push, dist });
+    });
+    for (const p of pieces) {
+      const delay = (p.dist / maxDist) * 750 + rand(pieces.indexOf(p), 3) * 150;
+      d3.select(p.el)
+        .attr("opacity", 0)
+        .attr("transform", `translate(${p.dx.toFixed(1)},${p.dy.toFixed(1)})`)
+        .transition().delay(delay).duration(560).ease(d3.easeCubicOut)
+        .attr("opacity", 1)
+        .attr("transform", "translate(0,0)");
+    }
+    const s0 = 2.6;
+    const introFrom = d3.zoomIdentity.translate(w / 2 - s0 * focal[0], h / 2 - s0 * focal[1]).scale(s0);
+    svg.call(zoom.transform as any, introFrom);
+    svg.transition().delay(120).duration(1600).ease(d3.easeCubicInOut)
+      .call(zoom.transform as any, initialTransform);
+  }
 
   /* ---------- pin ---------- */
 
