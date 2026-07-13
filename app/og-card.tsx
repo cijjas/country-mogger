@@ -1,3 +1,5 @@
+/* eslint-disable @next/next/no-img-element -- satori JSX, not browser DOM; next/image
+   does not exist in this rendering context */
 /* Shared design for the Open Graph and Twitter share cards, rendered by satori
    via next/og. Satori supports a flexbox subset and inline SVG only. */
 

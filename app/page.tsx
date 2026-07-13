@@ -1,5 +1,5 @@
-import MapExplorer from "@/components/map-explorer";
+import { Landing } from "@/components/landing";
 
 export default function Home() {
-  return <MapExplorer />;
+  return <Landing />;
 }

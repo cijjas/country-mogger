@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import * as d3 from "d3";
 import { Check, ChevronsUpDown, Dices, Maximize2, Minus, Plus, RotateCcw, Search } from "lucide-react";
 
@@ -186,9 +187,11 @@ export default function MapExplorer() {
 
       {/* header card: title, metric picker, country search, quick start */}
       <div className="absolute left-0 top-0 z-20 w-[360px] border-b border-r bg-card/95 p-4 shadow-xl backdrop-blur-md">
-        <h1 className="flex items-center gap-2.5 font-serif text-[28px] leading-none tracking-tight">
-          <LogoMark className="size-7" />
-          Country Mogger
+        <h1 className="font-serif text-[28px] leading-none tracking-tight">
+          <Link href="/" className="flex items-center gap-2.5">
+            <LogoMark className="size-7" />
+            Country Mogger
+          </Link>
         </h1>
         <p className="mb-3 mt-1.5 text-xs text-muted-foreground">
           Pick a country, then click anywhere on the map. Countries around that point light up until they add up to it.
