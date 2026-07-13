@@ -4,6 +4,7 @@
 import * as React from "react";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import * as THREE from "three";
 import { ArrowRight } from "lucide-react";
 
 import { Flag } from "@/components/flag";
@@ -50,6 +51,31 @@ function greatCircle(a: LngLat, b: LngLat): number {
   return 2 * Math.asin(Math.min(1, Math.sqrt(s)));
 }
 
+/** Deterministic starfield on a far sphere around the globe (globe radius is 100 units). */
+function makeStars(): THREE.Points {
+  const rand = (i: number, salt: number) => {
+    const x = Math.sin(i * 12.9898 + salt * 78.233) * 43758.5453;
+    return x - Math.floor(x);
+  };
+  const N = 1600;
+  const pos = new Float32Array(N * 3);
+  for (let i = 0; i < N; i++) {
+    const u = rand(i, 1) * 2 - 1;
+    const phi = rand(i, 2) * Math.PI * 2;
+    const r = 900 + rand(i, 3) * 900;
+    const s = Math.sqrt(1 - u * u);
+    pos[i * 3] = r * s * Math.cos(phi);
+    pos[i * 3 + 1] = r * u;
+    pos[i * 3 + 2] = r * s * Math.sin(phi);
+  }
+  const geom = new THREE.BufferGeometry();
+  geom.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  const mat = new THREE.PointsMaterial({
+    color: 0xbfc8d8, size: 2.2, sizeAttenuation: false, transparent: true, opacity: 0.65, depthWrite: false,
+  });
+  return new THREE.Points(geom, mat);
+}
+
 export function Landing() {
   const globeRef = useRef<HTMLDivElement>(null);
   const [caption, setCaption] = useState<Caption | null>(null);
@@ -76,12 +102,15 @@ export function Landing() {
         .backgroundColor("rgba(0,0,0,0)")
         .showAtmosphere(true).atmosphereColor("#33415c").atmosphereAltitude(0.16)
         .polygonsData(geo.features)
+        .polygonsTransitionDuration(0)   // no per-update tweening: cheap and glitch-free
         .polygonAltitude(0.008)
         .polygonCapColor((f: any) => landed.get(f.__i) ?? (f.__i === subjectIdx ? CAP_SUBJECT : CAP))
         .polygonSideColor(() => "rgba(5,8,12,0.6)")
         .polygonStrokeColor((f: any) => (f.__i === subjectIdx ? GOLD : STROKE))
         .width(container.clientWidth).height(container.clientHeight);
       world.globeMaterial().color.set(OCEAN);
+      world.scene().add(makeStars());
+      try { world.renderer().setPixelRatio(Math.min(window.devicePixelRatio, 1.75)); } catch { /* renderer accessor is best-effort */ }
       const controls = world.controls();
       controls.enabled = false;
       controls.autoRotate = false;
@@ -157,6 +186,8 @@ export function Landing() {
 
         const t0 = performance.now();
         let lastCount = -1;
+        let lastRefresh = 0;
+        let colorsDirty = false;
         const frame = (now: number) => {
           if (disposed) return;
           const t = (now - t0) / 1000;
@@ -165,12 +196,17 @@ export function Landing() {
             if (t >= appearAt(i)) {
               count++;
               cum += d.area * d.frac;
-              if (!landed.has(d.idx)) landed.set(d.idx, d.kind === "partial" ? GOLD_DIM : GOLD);
+              if (!landed.has(d.idx)) { landed.set(d.idx, d.kind === "partial" ? GOLD_DIM : GOLD); colorsDirty = true; }
             }
           });
+          // batch colour pushes: re-evaluating 240 polygon materials per landing is the
+          // expensive part, ~9Hz is indistinguishable from per-frame
+          if (colorsDirty && (now - lastRefresh > 110 || count >= n)) {
+            lastRefresh = now; colorsDirty = false;
+            refreshColors();
+          }
           if (count !== lastCount) {
             lastCount = count;
-            refreshColors();
             const done = count >= n && t > cascadeEnd;
             setCaption({
               ...base,
@@ -250,52 +286,47 @@ export function Landing() {
         </div>
       </main>
 
-      {/* live matchup readout, fed by the real fill running on the globe */}
+      {/* live matchup readout: fixed layout, the subject stays pinned, only numbers move */}
       {caption && (
         <div className="absolute bottom-6 right-6 z-10 w-[350px] max-w-[calc(100vw-3rem)] border border-border bg-card/90 p-4 backdrop-blur-md sm:bottom-8 sm:right-8">
-          <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-            Live: {METRICS[caption.metric].label} of {caption.name}
+          <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Live matchup</div>
+
+          {/* subject: pinned for the whole cycle */}
+          <div className="mt-2.5 flex items-center gap-3">
+            <Flag num={caption.num} className="h-8 w-12 shrink-0 border border-black/40" />
+            <div className="min-w-0">
+              <div className="truncate font-serif text-2xl leading-none text-foreground">{caption.name}</div>
+              <div className="mt-1 text-xs text-muted-foreground">{METRICS[caption.metric].label} · {caption.valueLabel}</div>
+            </div>
           </div>
 
-          {caption.phase === "intro" && (
-            <div className="mt-2 flex items-center gap-3">
-              <Flag num={caption.num} className="h-8 w-12" />
-              <div>
-                <div className="font-serif text-2xl leading-none text-foreground">{caption.name}</div>
-                <div className="mt-1 text-xs text-muted-foreground">{METRICS[caption.metric].label}: {caption.valueLabel}</div>
-              </div>
-            </div>
-          )}
+          {/* result line: fixed height, only the number changes */}
+          <div className="mt-3 flex h-7 items-baseline font-serif text-xl leading-none">
+            {caption.phase === "intro" && <span className="text-muted-foreground">measuring…</span>}
+            {caption.phase === "filling" && (
+              <span className="tabular-nums text-foreground">= {caption.count} <span className="text-muted-foreground">countries and counting</span></span>
+            )}
+            {caption.phase === "done" && (
+              <span className="text-foreground">= <span style={{ color: "var(--sel)" }}>{caption.count} countries</span></span>
+            )}
+          </div>
 
-          {caption.phase !== "intro" && (
-            <>
-              <div className="mt-2 flex items-baseline gap-2">
-                {caption.phase === "done" ? (
-                  <span className="font-serif text-2xl leading-none text-foreground">
-                    {caption.name} = <span style={{ color: "var(--sel)" }}>{caption.count} countries</span>
-                  </span>
-                ) : (
-                  <span className="font-serif text-2xl leading-none tabular-nums text-foreground">
-                    {caption.count} <span className="text-muted-foreground">countries and counting</span>
-                  </span>
-                )}
-              </div>
-              {caption.flagNums.length > 0 && (
-                <div className="mt-2.5 flex items-center gap-1">
-                  {caption.flagNums.map((num, i) => (
-                    <Flag key={`${num}-${i}`} num={num} className="h-3.5 w-5 border border-black/40" />
-                  ))}
-                  {caption.count > 8 && <span className="ml-1 text-xs text-muted-foreground">+{caption.count - 8}</span>}
-                </div>
-              )}
-              <div className="mt-3 h-1 overflow-hidden bg-secondary">
-                <div className="h-full transition-[width] duration-150" style={{ width: `${caption.pct}%`, background: "var(--sel)" }} />
-              </div>
-              {caption.phase === "done" && caption.partialLabel && (
-                <div className="mt-2 text-xs text-muted-foreground">including {caption.partialLabel}</div>
-              )}
-            </>
-          )}
+          {/* contributor flags: height reserved from the start */}
+          <div className="mt-1.5 flex h-4 items-center gap-1">
+            {caption.flagNums.map((num, i) => (
+              <Flag key={`${num}-${i}`} num={num} className="h-3.5 w-5 border border-black/40" />
+            ))}
+            {caption.count > 8 && <span className="ml-1 text-xs leading-none text-muted-foreground">+{caption.count - 8}</span>}
+          </div>
+
+          <div className="mt-3 h-1 overflow-hidden bg-secondary">
+            <div className="h-full transition-[width] duration-150" style={{ width: `${caption.pct}%`, background: "var(--sel)" }} />
+          </div>
+
+          {/* partial note: height reserved so nothing shifts when it appears */}
+          <div className="mt-2 h-4 text-xs leading-none text-muted-foreground">
+            {caption.phase === "done" && caption.partialLabel ? `including ${caption.partialLabel}` : ""}
+          </div>
         </div>
       )}
 
