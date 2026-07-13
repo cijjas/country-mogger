@@ -27,7 +27,7 @@ const MATCHUPS: { num: string; metric: MetricKey; seedNum: string }[] = [
 const OCEAN = "#0a0f16";
 const CAP = "#161c26";
 const CAP_SUBJECT = "#2b3444";
-const STROKE = "rgba(255,255,255,0.06)";
+const STROKE = "rgba(255,255,255,0.18)";
 const GOLD = "#f2c14e";
 const GOLD_DIM = "rgba(242,193,78,0.45)";
 
@@ -153,10 +153,11 @@ export function Landing() {
         const b = geo.boundsOf[sel];
         const subjectSpan = Math.max(Math.abs(b[1][1] - b[0][1]), 12);
         const subjectView = { lat: c[1], lng: c[0], altitude: Math.min(1.7, 0.45 + subjectSpan / 40) };
-        const blob = items.reduce<LngLat>((acc, d) => [acc[0] + geo.centroidOf[d.idx][0] / n, acc[1] + geo.centroidOf[d.idx][1] / n], [0, 0]);
-        const mid: LngLat = [(c[0] + blob[0]) / 2, (c[1] + blob[1]) / 2];
-        const wideSpan = spanOf([sel, ...items.map((d) => d.idx)], mid);
-        const wideView = { lat: mid[1], lng: mid[0], altitude: Math.max(1.5, Math.min(2.7, 0.7 + wideSpan * 1.15)) };
+        // the pull-out centres on the fill's epicentre (the seed the cascade spreads
+        // from) and frames every counted country; the subject lives in the card
+        const seedC = geo.centroidOf[seed];
+        const wideSpan = spanOf(items.map((d) => d.idx), seedC);
+        const wideView = { lat: seedC[1], lng: seedC[0], altitude: Math.max(1.4, Math.min(2.7, 0.6 + wideSpan * 1.3)) };
 
         // reset scene for this cycle
         landed.clear();
